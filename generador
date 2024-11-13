@@ -1,0 +1,852 @@
+import random
+import numpy as np
+from collections import defaultdict
+import os
+
+# Parámetros globales
+dias_semana = 5
+bloques_por_dia = 7
+total_bloques = dias_semana * bloques_por_dia
+
+capacidad_minima = 20
+capacidad_maxima = 45
+
+# Parámetros de la instancia
+lista = [[random.randint(30,35),3], [random.randint(45,49),4], [random.randint(60,64),5], [random.randint(70,74),6], 
+         [random.randint(80,84),7], [random.randint(140,160), random.randint(10,12)], [random.randint(170,190), random.randint(13,15)], 
+         [random.randint(200,220), random.randint(16,18)], [random.randint(230,250), random.randint(19,22)], 
+         [random.randint(280,300), random.randint(23,25)]]
+
+
+# Asignar bloques a las asignaturas (1 o 2 bloques por semana)
+def asignar_bloques(cantidad_asignaturas):
+    cantidad_65 = int(0.65 * cantidad_asignaturas) #se calcula el 65% de las asignaturas que deben tener OBLIGATORIAMENTE 2 bloques
+    cantidad_resto = cantidad_asignaturas - cantidad_65 #el resto serán de solo 1 bloque
+    asignacion_bloques = {1: cantidad_resto, 2: cantidad_65} #diccionario con claves 1 y 2 y sus datos la cantidad de bloques que son simples (1) y dobles (2)
+    return asignacion_bloques
+
+# Generar asignaturas con prioridad, si es doble o no y si es indispensable o no
+def generar_prioridad(cantidad_asignaturas,tipo_asignatura):
+    asignaturas = {} #se retornará este diccionario
+
+    generador = tipo_asignatura #es la funcion asignar bloques
+    asignaturas_dobles = generador[2] #cantidad bloques dobles
+    asignatura_simple = generador[1] #cantidad bloques unicos
+
+    indispensable = int(0.2 * cantidad_asignaturas) #asignaturas indispensable que SI O SI deben tener sala y a la vez son el 20% de la cantidad total (1 de cada 5)
+    resto = cantidad_asignaturas - indispensable #el resto de asignaturas no indispensables
+
+    for i in range(indispensable): #en este bucle se le asigna un numero de prioridad a las asignaturas indispensable y su cantidad de bloques
+        prioridad = random.randint(6,10) #su prioridad es de 6 a 10
+        interes = random.randint(10,40)
+        tipo = random.choice([asignaturas_dobles,asignatura_simple]) #se elige al azar si es doble o no
+        if(tipo == asignatura_simple and tipo > 0): #a partir de esta linea se dan las variables que pueden ocurrir en caso de elegir si son 2 o 1 bloque
+            asignatura_simple -= 1
+            tipo = "simple"
+        elif(tipo == asignatura_simple and tipo < 0):
+            if(asignaturas_dobles > 0):
+                asignaturas_dobles -= 1
+                tipo = "doble"
+            elif(asignaturas_dobles == 0 or asignaturas_dobles < 0):
+                tipo = "error"
+        elif(tipo == asignatura_simple and tipo == 0):
+            if(asignaturas_dobles > 0):
+                asignaturas_dobles -= 1
+                tipo = "doble"
+            elif(asignaturas_dobles == 0 or asignaturas_dobles < 0):
+                tipo = "error"
+        elif(tipo == asignaturas_dobles and tipo > 0):
+            asignaturas_dobles -= 1
+            tipo = "doble"
+        elif(tipo == asignaturas_dobles and tipo < 0):
+            if(asignatura_simple > 0):
+                asignaturas_dobles -= 1
+                tipo = "doble"
+            elif(asignatura_simple == 0 or asignatura_simple < 0):
+                tipo = "error"
+        elif(tipo == asignaturas_dobles and tipo == 0):
+            if(asignatura_simple > 0):
+                asignaturas_dobles -= 1
+                tipo = "doble"
+            elif(asignatura_simple == 0 or asignatura_simple < 0):
+                tipo = "error"                                      #en esta linea terminan los casos posibles.
+        datos_i = [] #lista que será el valor de cada clave dentro del diccionario
+        datos_i.append(prioridad)
+        datos_i.append(interes)
+        datos_i.append(tipo)
+        datos_i.append(True)
+        #a datos_i se le agrega la priorirdad, tipo y un True dado a que es indispensable
+        asignaturas[i + 1] = datos_i #asignar valor a clave. se le suma 1 dado a que el bucle comienza en 0
+
+    for i in range(resto): #se realiza el mismo proceso que el bucle anterior solo que esta vez son el resto de asignaturas no indispensables
+        prioridad = random.randint(1,5) #su prioridad es de 1 a 5
+        interes = random.randint(10,40)
+        tipo = random.choice([asignaturas_dobles,asignatura_simple])
+        if(tipo == asignatura_simple and tipo > 0):
+            tipo = "simple"
+            asignatura_simple -= 1
+        elif(tipo == asignatura_simple and tipo < 0):
+            if(asignaturas_dobles > 0):
+                tipo = "doble"
+                asignaturas_dobles -= 1
+            elif(asignaturas_dobles == 0 or asignaturas_dobles < 0):
+                tipo = "error"
+        elif(tipo == asignatura_simple and tipo == 0):
+            if(asignaturas_dobles > 0):
+                tipo = "doble"
+                asignaturas_dobles -= 1
+            elif(asignaturas_dobles == 0 or asignaturas_dobles < 0):
+                tipo = "error"
+        elif(tipo == asignaturas_dobles and tipo > 0):
+            tipo = "doble"
+            asignaturas_dobles -= 1
+        elif(tipo == asignaturas_dobles and tipo < 0):
+            if(asignatura_simple > 0):
+                tipo = "doble"
+                asignaturas_dobles -= 1
+            elif(asignatura_simple == 0 or asignatura_simple < 0):
+                tipo = "error"
+        elif(tipo == asignaturas_dobles and tipo == 0):
+            if(asignatura_simple > 0):
+                tipo = "doble"
+                asignaturas_dobles -= 1
+            elif(asignatura_simple == 0 or asignatura_simple < 0):
+                tipo = "error"
+        datos_i = []
+        datos_i.append(prioridad)
+        datos_i.append(interes)
+        datos_i.append(tipo)
+        datos_i.append(False)
+
+        asignaturas[i + 1 + indispensable] = datos_i 
+        #en este caso al ser el resto de asignaturas hay que sumar 'indispensables + 1'
+        #de esa manera no se sobre escribe en las claves ya creadas en el anterior bucle dado que
+        #ambos bucles comienzan de 0.
+
+    asignaturas_ordenadas = sorted(asignaturas.items(), key=lambda x: x[1][0], reverse=True) #ordenamos segun prioridad para efecto de comodidad en los siguientes pasos
+    # for asig,datos in asignaturas_ordenadas:
+    #    print(f"Asignatura {asig} con prioridad {datos[0]}, interes {datos[1]}, bloque(s) {datos[2]} y calidad de indispensable: {datos[3]}")
+    return asignaturas_ordenadas
+
+# Generar salas con capacidad aleatoria
+def generar_salas(cantidad_salas, capacidad_minima, capacidad_maxima):
+    salas = {} #diccionario que su clave será la sala i y valor la capacidad que contendrá
+    for i in range(cantidad_salas): #bucle de cantidad de salas generadas
+        capacidad = random.randint(capacidad_minima, capacidad_maxima) #se le asigna capacidad a la sala i
+        salas[i+1] = capacidad #sumamos 1 dado a que el bucle comienza en 0
+#    for sala,capacidad in salas.items():
+#        print(f"Sala numero {sala} tiene una capacidad de {capacidad} personas")
+    return salas
+
+# Generar restricciones de horarios para los profesores
+def generar_restricciones_horarios(cantidad_asignaturas, total_bloques):
+    restricciones = {} #diccionario de profesores, su clave son los bloques en que no puede realizar clases
+    for i in range(cantidad_asignaturas): #se asume que la cantidad de profesores es igual a la de asignaturas
+        bloques_restringidos = sorted(random.sample(range(1, total_bloques + 1), random.randint(7, 21)))
+        restringidos = len(bloques_restringidos)
+        max_ = 35 - restringidos
+        bloquestrabajo = random.randint(14,max_)
+        restricciones[i + 1] = [bloques_restringidos,bloquestrabajo] #sumamos 1 dado a que el bucle comienza en 0
+#    for profe, valores in restricciones.items():
+#        print(f"El profesor {profe} tiene restringidos los bloques {valores[0]}, son {len(valores[0])} y por el momento tiene {valores[1]} bloques de clases asignados")
+    return restricciones
+
+def asignar_sala(cantidad_asignaturas, cantidad_salas, capacidad_minima, capacidad_maxima, total_bloques):
+
+    asignaturas = asignar_bloques(cantidad_asignaturas)
+
+    salas = generar_salas(cantidad_salas,capacidad_minima,capacidad_maxima)
+
+    prioridad = generar_prioridad(cantidad_asignaturas,asignaturas)
+
+    restriccion_profesor = generar_restricciones_horarios(cantidad_asignaturas,total_bloques)
+        
+    cant = len(salas)
+
+    dicf = {}
+    for dia in range(1,6):
+        bloques = {1: [],
+        2: [],
+        3: [],
+        4: [],
+        5: [],
+        }
+        for bloque in range(1,len(bloques)+1):
+            for sala in range(1,cant+1):
+                dicc = dict()
+                dicc[sala] = salas[sala]
+                bloques[bloque].append(dicc)
+    
+    lista_items = list(bloques.items())
+    # print(lista_items)  # Salida: [('a', 1), ('b', 2), ('c', 3)]
+
+    for dia, datos in lista_items:
+        for sala in datos:
+            for salita, capacidad in sala.items():
+                for asignatura in range(cantidad_asignaturas):
+                    dicf[f"dia {dia} sala {salita} prioridad {prioridad[asignatura][1][0]} tipo {prioridad[asignatura][1][-1]} interes {prioridad[asignatura][1][1]}"] = f"Asignatura {prioridad[asignatura][0]}"
+
+    bloquesagregado = {}
+
+    for key, value in dicf.items():
+        for asignatura in range(cantidad_asignaturas):
+            if(value == f"Asignatura {prioridad[asignatura][0]}"):
+                if(prioridad[asignatura][1][2] == "doble"):
+                    for bloquesss in range(1,8):
+                        if(prioridad[asignatura][1][-1] == True):
+                            bloquesagregado[value + f" dia {key.split()[1]} sala {key.split()[3]} bloques {bloquesss} doble"] = key
+                        else:
+                            bloquesagregado[value + f" dia {key.split()[1]} sala {key.split()[3]} bloques {bloquesss} doble"] = key
+                elif(prioridad[asignatura][1][2] == "simple"):
+                    for bloquesss in range(1,8):
+                        if(prioridad[asignatura][1][-1] == True):
+                            bloquesagregado[value + f" dia {key.split()[1]} sala {key.split()[3]} bloque {bloquesss} simple"] = key
+                        else:
+                            bloquesagregado[value + f" dia {key.split()[1]} sala {key.split()[3]} bloque {bloquesss} simple"] = key
+
+    listaindispensable = []
+    listano_indispensable = []
+
+    for key,value in bloquesagregado.items():
+        a,asignatura,b,diaa,c,salaa,d,bloque,e = key.split()
+        a,dia,b,sala,c,prioridad,d,indispensable,e,interes = value.split()
+        if (indispensable == "True"):
+            listaindispensable.append([int(asignatura),int(dia),int(salaa),int(prioridad),indispensable,int(interes),int(bloque),e])
+        elif(indispensable == "False"):
+            listano_indispensable.append([int(asignatura),int(dia),int(salaa),int(prioridad),indispensable,int(interes),int(bloque),e])
+
+    return listaindispensable, listano_indispensable
+
+def orden(cantidad_asignaturas,cantidad_salas,asignaturas_indispensables, asignaturas_no_indispensables,salas,profesores):
+
+    CS = [0]
+
+    cant_indispensables = len(asignaturas_indispensables)
+    cant_no_indispensables = len(asignaturas_no_indispensables)
+
+
+    AI = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    AID = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    PAI = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    NAI = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    AO = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    AOD = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    PAO = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    NAO = np.zeros((36, cantidad_asignaturas+1,cantidad_salas+1), dtype=int)
+    RPI = np.zeros((36, cant_indispensables+1,cantidad_asignaturas+1), dtype=int)
+    RPO = np.zeros((36, cant_no_indispensables+1,cantidad_asignaturas+1), dtype=int)
+    
+
+    for item in asignaturas_indispensables:
+        asign,dia,sala,prioridad,indispensable,interes, bloques,estado = item
+        k = (7 * (dia-1) + bloques)
+        AI[k][asign][sala] = 1
+        PAI[k][asign][sala] = prioridad
+        NAI[k][asign][sala] = interes
+        if(estado == "doble"):
+            AID[k][asign][sala] = 1
+
+    for item in asignaturas_no_indispensables:
+        asign,dia,sala,prioridad,indispensable,interes, bloques,estado = item
+        k = (7 * (dia-1) + bloques)
+        AO[k][asign][sala] = 1
+        PAO[k][asign][sala] = prioridad
+        NAO[k][asign][sala] = interes
+        if(estado == "doble"):
+            AOD[k][asign][sala] = 1
+
+    for prof, restr in profesores.items():
+        bloq = restr[0]
+        for b in bloq:
+            if 0 <= b < RPI.shape[0] and 0 <= (prof) < RPI.shape[2]:
+                RPI[b, :, prof] = 1
+                RPO[b, :, prof] = 1
+
+    for sala,capacidad in salas.items():
+        CS.append(capacidad)
+
+    return AI,AO,AID,AOD,PAI,PAO,NAI,NAO,RPI,RPO,CS
+
+
+def creararchivo(AI,AO,AID,AOD,PAI,PAO,NAI,NAO,RPI,RPO,CS,cantasignaturas,cantsalas,cantind,cantnoind):
+
+    obj_func = "max: "
+    terms = []
+
+    for c in range(1,cantsalas+1):
+        for k in range(1,36):
+            for i in range(1,cantasignaturas+1):
+                sum_AI_PAI = 0
+                sum_AO_PAO = 0
+                if((AI[k, i, c] * PAI[k, i, c]) != 0):
+                    sum_AI_PAI += (AI[k, i, c] * PAI[k, i, c])
+                if((AO[k, i, c] * PAO[k, i, c]) != 0):
+                    sum_AO_PAO += (AO[k, i, c] * PAO[k, i, c])
+                if(sum_AO_PAO != 0 and sum_AI_PAI != 0):
+                    terms.append(f"{sum_AI_PAI} x_{i}_{k}_{c} + {sum_AO_PAO} y_{i}_{k}_{c}")
+                if(sum_AO_PAO != 0 and sum_AI_PAI == 0):
+                    terms.append(f"{sum_AO_PAO} y_{i}_{k}_{c}")
+                if(sum_AO_PAO == 0 and sum_AI_PAI != 0):
+                    terms.append(f"{sum_AI_PAI} x_{i}_{k}_{c}")
+
+    
+    obj_func += " + ".join(terms) + ";\n"
+    
+    var= "bin "
+    for c in range(1,cantsalas+1):
+        for k in range(1,36):
+            for i in range(1,cantasignaturas+1):
+                if(f"x_{i}_{k}_{c}" in obj_func):
+                    var += f" x_{i}_{k}_{c},"
+                if(f"y_{i}_{k}_{c}" in obj_func):
+                    var+= f" y_{i}_{k}_{c},"
+                    
+    var = var[:-1]
+    var += ";"
+    
+    r = []
+    rti = ""
+    for c in range(1,cantsalas+1):
+        for k in range(1,36):
+            for i in range(1,cantasignaturas+1):
+                if (AI[k,i,c] != 0 and (f"x_{i}_{k}_{c}" in obj_func)):
+                    r.append(f"{AI[k,i,c]} x_{i}_{k}_{c}")
+    if(r != []):
+        rti += " + ".join(r) + " = 1;\n"
+    # print(rti)
+    
+    r1 = []
+    rto = ""
+    for c in range(1,cantsalas+1):
+        for k in range(1,36):
+            for i in range(1, cantasignaturas+1):
+                if (AO[k,i,c] != 0 and (f"y_{i}_{k}_{c}" in obj_func)):
+                    r1.append(f"{AO[k,i,c]} y_{i}_{k}_{c}")
+    if(r1 != []):
+        rto += " + ".join(r1) + " <= 1;\n"
+    # print(rto)
+    
+    restricciones = ""
+    term = []
+    for i in range(1,cantind+1):
+        for k in range(1,36):
+            for asignatura in range(1,cantasignaturas+1):
+                for c in range(1, cantsalas + 1):
+                    if(AI[k,asignatura,c] != 0 and (f"x_{i}_{k}_{c}" in obj_func)):
+                        terms = f"{AI[k, asignatura, c]} x_{i}_{k}_{c}"
+                        if(RPI[k,i,asignatura] != 0):
+                            restricciones += f"{RPI[k,i,asignatura]} + {terms} <= 1;\n"
+
+    # print(restricciones)
+        
+    restricciones2 = ""
+    term2 = []
+    for i in range(1,cantnoind+1):
+        for k in range(1,36):
+            for asignatura in range(1,cantasignaturas+1):
+                for c in range(1, cantsalas + 1):
+                    if(AO[k,asignatura,c] != 0 and (f"y_{i}_{k}_{c}" in obj_func)):
+                        terms2 = f"{AO[k, asignatura, c]} y_{i}_{k}_{c}"
+                        if(RPO[k,i,asignatura] != 0 ):
+                            restricciones2 += f"{RPO[k,i,asignatura]} + {terms2} <= 1;\n"
+    # print(restricciones2)
+
+    t = []
+    t1 = []
+    sum_AI_AID = 0
+    sum_AO_AOD = 0
+    r3 = ""
+    r4 = ""
+    for c in range(1,cantsalas+1):
+        for a in range(1,6):
+            k = 7*a
+            for i in range(1,cantasignaturas+1):
+                if((AI[k, i, c] * AID[k, i, c]) != 0 and (f"x_{i}_{k}_{c}" in obj_func)):
+                    term_AI_AID = AI[k, i, c] * AID[k, i, c]
+                    t.append(f"{term_AI_AID} x_{i}_{k}_{c}")
+                if((AO[k, i, c] * AOD[k, i, c]) != 0 and (f"y_{i}_{k}_{c}" in obj_func)):
+                    term_AO_AOD = AO[k, i, c] * AOD[k, i, c]
+                    t1.append(f"{term_AO_AOD} y_{i}_{k}_{c}")
+    if(t != [] and t1 != []):
+        r3 += " + ".join(t) + "= 0;\n"
+        r4 += " + ".join(t1) + "= 0;\n"
+    # print(r3)
+    
+    t3 = []
+    r5 = ""
+    for c in range(1,cantsalas+1):
+        for k in range(1,36):
+            for i in range(1,cantasignaturas+1):
+                sum_AI = 0
+                sum_AO = 0
+                if (AI[k, i, c] != 0):
+                    sum_AI += (AI[k, i, c])
+                if (AO[k, i, c] != 0):
+                    sum_AO += (AO[k, i, c])
+                if(sum_AI != 0):
+                    if(sum_AO != 0 and ((f"x_{i}_{k}_{c}" in obj_func) or (f"y_{i}_{k}_{c}" in obj_func))):
+                        t3.append(f"{sum_AI} x_{i}_{k}_{c} + {sum_AO} y_{i}_{k}_{c} <= 1;")
+    if(t3 != []):
+        r5 += "\n".join(t3) + "\n"
+    # print(r5)
+    
+    r6 = ""
+    for c in range(1, cantsalas + 1):
+        for k in range(1, 36):
+            # Inicializar los términos acumulativos para esta combinación de k y c
+            sum_AI_AID = 0
+            sum_AO_AOD = 0
+            sum_AI_next = 0
+            sum_AO_next = 0
+            
+            # Calcular la suma de AID_i * AI_ikc para todos los i
+            for i in range(1, cantasignaturas + 1):
+                if(AID[k, i, c] * AI[k, i, c] != 0):
+                    sum_AI_AID += AID[k, i, c] * AI[k, i, c]
+                if k + 1 < 36 and AI[k + 1, i, c] != 0:
+                    sum_AI_next += AI[k + 1, i, c]
+            
+            # Calcular la suma de AOD_j * AO_jkc para todos los j
+            for j in range(1, cantasignaturas + 1):
+                if(AOD[k, j, c] * AO[k, j, c] != 0):
+                    sum_AO_AOD += AOD[k, j, c] * AO[k, j, c]
+                if k + 1 < 36 and AO[k + 1, j, c] != 0:
+                    sum_AO_next += AO[k + 1, j, c]
+            
+            # Inicializar la parte izquierda de la restricción
+        restriction = ""
+        
+        # Solo agregar los términos no cero
+        if (sum_AI_AID != 0 and (f"x_{i}_{k}_{c}" in obj_func)):
+            restriction += f"{sum_AI_AID} x_{i}_{k}_{c} + "
+        
+        if (sum_AI_next != 0 and (f"x_{i}_{k+1}_{c}" in obj_func)):
+            restriction += f"{sum_AI_next} x_{i}_{k+1}_{c} + "
+        
+        if (sum_AO_AOD != 0 and (f"y_{i}_{k}_{c}" in obj_func)):
+            restriction += f"{sum_AO_AOD} y_{j}_{k}_{c} + "
+        
+        if (sum_AO_next != 0 and (f"y_{i}_{k+1}_{c}" in obj_func)):
+            restriction += f"{sum_AO_next} y_{j}_{k+1}_{c} + "
+        
+        # Eliminar el último "+" si es necesario
+        if restriction.endswith(" + "):
+            restriction = restriction[:-3]
+        
+        # Si hay algún término, agregar la comparación <= 1
+        if restriction:
+            restriction += " <= 1;"
+            # Añadir la restricción a r6
+            r6 += restriction + "\n"
+    # print(r6)
+    
+    r7 = ""
+    m = []
+    for c in range(1,cantsalas+1):
+        for k in range(1,36):
+            for i in range(1,cantasignaturas+1):
+                sum_AINAI = 0
+                sum_AONAO = 0
+                if(AI[k, i, c] * NAI[k, i, c] != 0):
+                    sum_AINAI += (AI[k, i, c] * NAI[k, i, c])
+                if(AO[k, i, c] * NAO[k, i, c] != 0):
+                    sum_AONAO += (AO[k, i, c] * NAO[k, i, c])
+                if(sum_AINAI != 0 or sum_AONAO != 0):
+                    if(sum_AINAI == 0):
+                        if(f"y_{i}_{k}_{c}" in obj_func):
+                            m.append(f"{sum_AONAO} y_{i}_{k}_{c} <= {CS[c]};\n")
+                    if(sum_AONAO == 0):
+                        if(f"x_{i}_{k}_{c}" in obj_func):
+                            m.append(f"{sum_AINAI} x_{i}_{k}_{c} <= {CS[c]};\n")
+
+    r7 += "".join(m)
+
+    return obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var
+
+
+paso1 = asignar_bloques(6)
+prioridad = generar_prioridad(6,paso1)
+salas = generar_salas(1,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(6,total_bloques)
+indispensables,no_indispensables = asignar_sala(6, 1, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(6,1,indispensables, no_indispensables,salas,restricciones)
+creararchivo(a,b,c,d,e,f,g,h,i,j,k,6,1,len(indispensables),len(no_indispensables))
+
+def arreglararchivo(archivo,num):
+    with open(archivo, "r") as file:
+        lines = file.readlines()
+
+    # Encontrar las posiciones de las marcas
+    inicio_modificar = None
+    fin_modificar = None
+
+    # Buscar las líneas de inicio y fin basadas en los comentarios
+    for i, line in enumerate(lines):
+        if "/*restricciones*/" in line:
+            inicio_modificar = i + 1  # La siguiente línea es la que queremos modificar
+        if "/*variables*/" in line:
+            fin_modificar = i - 1  # La línea anterior a /*variables*/ es la última a modificar
+
+    # Verificar si se encontraron las marcas
+    if inicio_modificar is None or fin_modificar is None:
+        print("No se encontraron las marcas /*restricciones*/ o /*variables*/.")
+    else:
+        # Modificar las líneas en el rango especificado
+        r = 1
+        for i in range(inicio_modificar, fin_modificar + 1):
+            lines[i] = f"R{r}: " + lines[i]  # Agregar "R{LINEA}" al inicio
+            r += 1
+
+        # Guardar el archivo modificado
+        with open(f"instancia {num}.lp", "w") as file:
+            file.writelines(lines)
+
+        os.remove(archivo)
+        
+# for instancia in range(5):
+#     asign = random.randint(6,10)
+#     sal = 1
+
+#     paso1 = asignar_bloques(asign)
+#     prioridad = generar_prioridad(asign,paso1)
+#     salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+#     restricciones =generar_restricciones_horarios(asign,total_bloques)
+#     indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+#     a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+#     obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+#     with open(f"instancia_{instancia+1}.lp", "w") as archivo:
+#         archivo.write("/*obj_func*/\n")
+#         archivo.write(obj_func)
+#         archivo.write("/*restricciones*/\n")
+#         archivo.write(rti)
+#         archivo.write(rto)
+#         archivo.write(restricciones)
+#         archivo.write(restricciones2)
+#         archivo.write(r3)
+#         archivo.write(r4)
+#         archivo.write(r5)
+#         archivo.write(r6)
+#         archivo.write(r7)
+#         archivo.write("/*variables*/\n")
+#         archivo.write(var + "\n")
+    
+#     arreglararchivo(f"instancia_{instancia+1}.lp",instancia)
+    
+#     print(f"Archivo instancia {instancia + 1}.lp creado correctamente.")
+#     print("Archivo guardado en:", os.path.abspath(f"instancia_{instancia + 1}.lp"))
+    
+# asign = lista[0][0]
+# sal = lista[0][1]
+# paso1 = asignar_bloques(asign)
+# prioridad = generar_prioridad(asign,paso1)
+# salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+# restricciones =generar_restricciones_horarios(asign,total_bloques)
+# indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+# a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+# obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+# with open(f"instancia_{6}.lp", "w") as archivo:
+#     archivo.write("/*obj_func*/\n")
+#     archivo.write(obj_func)
+#     archivo.write("/*restricciones*/\n")
+#     archivo.write(rti)
+#     archivo.write(rto)
+#     archivo.write(restricciones)
+#     archivo.write(restricciones2)
+#     archivo.write(r3)
+#     archivo.write(r4)
+#     archivo.write(r5)
+#     archivo.write(r6)
+#     archivo.write(r7)
+#     archivo.write("/*variables*/\n")
+#     archivo.write(var + "\n")
+
+# arreglararchivo(f"instancia_{6}.lp",6)
+
+# print(f"Archivo instancia {6}.lp creado correctamente.")
+# print("Archivo guardado en:", os.path.abspath(f"instancia {6}.lp"))
+
+# asign = lista[1][0]
+# sal = lista[1][1]
+# paso1 = asignar_bloques(asign)
+# prioridad = generar_prioridad(asign,paso1)
+# salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+# restricciones =generar_restricciones_horarios(asign,total_bloques)
+# indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+# a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+# obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+# with open(f"instancia_{7}.lp", "w") as archivo:
+#     archivo.write("/*obj_func*/\n")
+#     archivo.write(obj_func)
+#     archivo.write("/*restricciones*/\n")
+#     archivo.write(rti)
+#     archivo.write(rto)
+#     archivo.write(restricciones)
+#     archivo.write(restricciones2)
+#     archivo.write(r3)
+#     archivo.write(r4)
+#     archivo.write(r5)
+#     archivo.write(r6)
+#     archivo.write(r7)
+#     archivo.write("/*variables*/\n")
+#     archivo.write(var + "\n")
+
+# arreglararchivo(f"instancia_{7}.lp",7)
+
+# print(f"Archivo instancia {7}.lp creado correctamente.")
+# print("Archivo guardado en:", os.path.abspath(f"instancia {7}.lp"))
+
+# asign = lista[2][0]
+# sal = lista[2][1]
+# paso1 = asignar_bloques(asign)
+# prioridad = generar_prioridad(asign,paso1)
+# salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+# restricciones =generar_restricciones_horarios(asign,total_bloques)
+# indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+# a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+# obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+# with open(f"instancia_{8}.lp", "w") as archivo:
+#     archivo.write("/*obj_func*/\n")
+#     archivo.write(obj_func)
+#     archivo.write("/*restricciones*/\n")
+#     archivo.write(rti)
+#     archivo.write(rto)
+#     archivo.write(restricciones)
+#     archivo.write(restricciones2)
+#     archivo.write(r3)
+#     archivo.write(r4)
+#     archivo.write(r5)
+#     archivo.write(r6)
+#     archivo.write(r7)
+#     archivo.write("/*variables*/\n")
+#     archivo.write(var + "\n")
+
+# arreglararchivo(f"instancia_{8}.lp",8)
+
+# print(f"Archivo instancia {8}.lp creado correctamente.")
+# print("Archivo guardado en:", os.path.abspath(f"instancia {8}.lp"))
+
+asign = lista[7][0]
+sal = lista[7][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{13}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{13}.lp",13)
+
+asign = lista[3][0]
+sal = lista[3][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{9}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{9}.lp",9)
+
+print(f"Archivo instancia {9}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {9}.lp"))
+    
+asign = lista[4][0]
+sal = lista[4][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{10}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{10}.lp",10)
+
+print(f"Archivo instancia {10}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {10}.lp"))
+
+asign = lista[5][0]
+sal = lista[5][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{11}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{11}.lp",11)
+
+print(f"Archivo instancia {11}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {11}.lp"))
+
+asign = lista[6][0]
+sal = lista[6][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{12}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{12}.lp",12)
+
+print(f"Archivo instancia {12}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {12}.lp"))
+
+
+
+print(f"Archivo instancia {13}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {13}.lp"))
+
+asign = lista[8][0]
+sal = lista[8][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{14}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{14}.lp",14)
+
+print(f"Archivo instancia {14}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {14}.lp"))
+
+asign = lista[9][0]
+sal = lista[9][1]
+paso1 = asignar_bloques(asign)
+prioridad = generar_prioridad(asign,paso1)
+salas = generar_salas(sal,capacidad_minima,capacidad_maxima)
+restricciones =generar_restricciones_horarios(asign,total_bloques)
+indispensables,no_indispensables = asignar_sala(asign, sal, capacidad_minima, capacidad_maxima, total_bloques)
+a,b,c,d,e,f,g,h,i,j,k = orden(asign,sal,indispensables,no_indispensables,salas,restricciones)
+obj_func,rti,rto,restricciones,restricciones2,r3,r4,r5,r6,r7,var = creararchivo(a,b,c,d,e,f,g,h,i,j,k,asign,sal,len(indispensables),len(no_indispensables))
+with open(f"instancia_{15}.lp", "w") as archivo:
+    archivo.write("/*obj_func*/\n")
+    archivo.write(obj_func)
+    archivo.write("/*restricciones*/\n")
+    archivo.write(rti)
+    archivo.write(rto)
+    archivo.write(restricciones)
+    archivo.write(restricciones2)
+    archivo.write(r3)
+    archivo.write(r4)
+    archivo.write(r5)
+    archivo.write(r6)
+    archivo.write(r7)
+    archivo.write("/*variables*/\n")
+    archivo.write(var + "\n")
+
+arreglararchivo(f"instancia_{15}.lp",15)
+
+print(f"Archivo instancia {15}.lp creado correctamente.")
+print("Archivo guardado en:", os.path.abspath(f"instancia {15}.lp"))
+
+
+# # El código está diseñado para generar múltiples instancias de un problema de programación lineal, 
+# # específicamente un problema de asignación de horarios. 
+# # Cada instancia representa un escenario diferente con distintas cantidades de asignaturas, salas y restricciones.
+# # asignar_bloques: Determina la cantidad de asignaturas que tendrán uno o dos bloques por semana.
+# # generar_prioridad: Asigna a cada asignatura una prioridad, un interés y define si es indispensable o no.
+# # generar_salas: Crea un diccionario con las salas y su capacidad.
+# # generar_restricciones_horarios: Genera restricciones de horarios para los profesores.
+# # asignar_sala: Intenta asignar una sala a cada asignatura, considerando la prioridad, disponibilidad de la sala y restricciones.
+# # orden: Organiza la información de asignaturas, salas y restricciones en matrices para facilitar la generación del modelo matemático.
+# # creararchivo: Genera el archivo .lp con el modelo matemático completo, listo para ser resuelto por un solver de programación lineal.
+# # Generación de Instancias Múltiples:
+# # Se itera sobre la lista de instancias, generando para cada una las matrices necesarias y creando el archivo .lp correspondiente.
